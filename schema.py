@@ -5,8 +5,26 @@ from graphql.core.type.schema import GraphQLSchema
 
 from data import get_user, get_comments_for, get_post, create_post
 
-def res(obj, args, info):
-    import ipdb; ipdb.set_trace()
+from _relay import get_node_by_id, resolve_node_type
+
+
+@resolve_node_type
+def node_interface(obj):
+    return {
+        'Post': PostType,
+        'User': UserType,
+    }[obj.type]
+
+
+@get_node_by_id(node_interface)
+def node(id, info):
+    assert info.schema == schema
+    if id in userData:
+        return userData[id]
+    else:
+        return photoData[id]
+
+
 
 UserType = GraphQLObjectType('UserType', {
     'email': GraphQLField(GraphQLString),
@@ -62,4 +80,4 @@ MutationType = GraphQLObjectType('Mutation', {
 
 
 
-Schema = GraphQLSchema(query=QueryRootType, mutation=MutationType)
+schema = GraphQLSchema(query=QueryRootType, mutation=MutationType)
