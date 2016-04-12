@@ -99,42 +99,81 @@ def addPost(obj, args, _i):
     result.clientMutationId = params['clientMutationId']
     return result
 
+
+
+class RelayMutation:
+    name = None
+
+    def get_input_fields(self):
+        raise NotADirectoryError
+
+    def get_output_fields(self):
+        raise NotImplementedError
+
+    def mutate(self, **params):
+        raise NotImplementedError
+
+    def _resolver(self, obj, args, info):
+        params = args.get('input')
+        result = self.mutate(**params)
+        result.clientMutationId = params['clientMutationId']
+        return result
+
+    @classmethod
+    def build(cls):
+        self = cls()
+        output_fields = self.get_output_fields()
+        output_fields.update({
+            'clientMutationId': GraphQLField(GraphQLNonNull(GraphQLString))
+        })
+        output_type = GraphQLObjectType(
+            self.name + 'Payload',
+            fields=output_fields)
+        input_fields = self.get_input_fields()
+        input_fields.update({
+            'clientMutationId':
+                GraphQLInputObjectField(GraphQLNonNull(GraphQLString))
+        })
+        input_arg = GraphQLArgument(GraphQLNonNull(GraphQLInputObjectType(
+            name=self.name + 'Input',
+            fields=input_fields)))
+        return GraphQLField(
+            output_type,
+            args = {
+                'input': input_arg,
+            },
+            resolver=self._resolver
+        )
+
+
+
+
+class AddPostMutation(RelayMutation):
+    name = 'AddPost'
+
+    def get_input_fields(self):
+        return {
+            'parent_id': GraphQLInputObjectField(GraphQLInt),
+            'title': GraphQLInputObjectField(GraphQLString),
+            'text': GraphQLInputObjectField(GraphQLString),
+            'tags': GraphQLInputObjectField(GraphQLList(GraphQLString)),
+        }
+
+
+    def get_output_fields(self):
+        return {
+            'post': GraphQLField(PostType),
+        }
+
+    def mutate(self, **params):
+        params['parent'] = params.pop('parent_id')
+        return asobj({'post': create_post(**params)})
+
+
 MutationType = GraphQLObjectType('Mutation', {
-    'addPost': GraphQLField(
-        GraphQLObjectType(
-            'AddPostPayload',
-            fields = {
-                'clientMutationId':
-                    GraphQLField(GraphQLNonNull(GraphQLString)),
-                'post':
-                    GraphQLField(PostType),
-            }),
-        args = {
-            'input': GraphQLArgument(GraphQLNonNull(GraphQLInputObjectType(
-                name='AddPostInput',
-                fields=input_fields))),
-        },
-        resolver=addPost
-    ),
+    'addPost': AddPostMutation.build()
 
 })
 
-class RelayMutation:
-    'TODO'
-
-    def get_input_fields(self):
-        1
-
-    def get_output_fields(self):
-        1
-
-    def _resolver(self, obj, args, info):
-        1
-
-    def resolve(self, input):
-        1
-
-    def build(self):
-        1
 
 schema = GraphQLSchema(query=QueryRootType, mutation=MutationType)
