@@ -80,27 +80,6 @@ QueryRootType = GraphQLObjectType(
 
 
 
-input_fields = {
-    'parent_id': GraphQLInputObjectField(GraphQLInt),
-    'title': GraphQLInputObjectField(GraphQLString),
-    'text': GraphQLInputObjectField(GraphQLString),
-    'tags': GraphQLInputObjectField(GraphQLList(GraphQLString)),
-}
-
-input_fields.update(clientMutationId = GraphQLInputObjectField(
-    GraphQLNonNull(GraphQLString)
-))
-
-
-def addPost(obj, args, _i):
-    params = dict(args.get('input'))
-    params['parent'] = params.pop('parent_id')
-    result = asobj({'post': create_post(**params)})
-    result.clientMutationId = params['clientMutationId']
-    return result
-
-
-
 class RelayMutation:
     name = None
 
